@@ -4,7 +4,8 @@ import { logout } from '../features/authSlice';
 import toast from 'react-hot-toast';
 
 const axiosInstance = axios.create({
-  baseURL: 'http://localhost:5000/api', 
+  // Swapped out localhost for your live Vercel production backend!
+  baseURL: 'https://insuretrack-api-mu.vercel.app/api', 
 });
 
 axiosInstance.interceptors.request.use((config) => {
