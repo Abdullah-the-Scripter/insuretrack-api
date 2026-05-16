@@ -9,8 +9,31 @@ const errorHandler = require("./middleware/errorHandler");
 
 const app = express();
 
-// Middleware
-app.use(cors());
+// --- PRODUCTION CORS CONFIGURATION ---
+const allowedOrigins = [
+  "https://insuretrack-api-1kid.vercel.app", // Your live frontend URL
+  "http://localhost:5173",                   // Local Vite dev server
+  "http://localhost:3000"
+];
+
+app.use(cors({
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like server-to-server or Postman testing)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.indexOf(origin) === -1) {
+      const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
+      return callback(new Error(msg), false);
+    }
+    return callback(null, true);
+  },
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept"]
+}));
+
+// Intercept all global OPTIONS requests for preflight clearance
+app.options('*', cors());
+
 app.use(express.json());
 
 // Routes
