@@ -4,21 +4,21 @@ require("reflect-metadata");
 const express = require("express");
 const cors = require("cors");
 
-const AppDataSource = require("./config/db");
-const errorHandler = require("./middleware/errorHandler");
+// --- FIX: Point imports into the src/ folder ---
+const AppDataSource = require("./src/config/db");
+const errorHandler = require("./src/middleware/errorHandler");
 
 const app = express();
 
 // --- PRODUCTION CORS CONFIGURATION ---
 const allowedOrigins = [
-  "https://insuretrack-api-1kid.vercel.app", // Your live frontend URL
-  "http://localhost:5173",                   // Local Vite dev server
+  "https://insuretrack-api-1kid.vercel.app", 
+  "http://localhost:5173",                   
   "http://localhost:3000"
 ];
 
 app.use(cors({
   origin: function (origin, callback) {
-    // Allow requests with no origin (like server-to-server or Postman testing)
     if (!origin) return callback(null, true);
     if (allowedOrigins.indexOf(origin) === -1) {
       const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
@@ -31,15 +31,14 @@ app.use(cors({
   allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept"]
 }));
 
-// Intercept all global OPTIONS requests for preflight clearance
 app.options('*', cors());
 
 app.use(express.json());
 
-// Routes
-app.use("/api/auth", require("./routes/authRoutes"));
-app.use("/api/claims", require("./routes/claimRoutes"));
-app.use("/api/admin", require("./routes/adminRoutes"));
+// --- FIX: Point route imports into the src/ folder ---
+app.use("/api/auth", require("./src/routes/authRoutes"));
+app.use("/api/claims", require("./src/routes/claimRoutes"));
+app.use("/api/admin", require("./src/routes/adminRoutes"));
 
 // Error Handler
 app.use(errorHandler);
@@ -49,7 +48,6 @@ AppDataSource.initialize()
   .then(() => {
     console.log("Database connected securely");
 
-    // LOCAL TESTING ONLY: Vercel does not use app.listen
     if (process.env.NODE_ENV !== "production") {
       const PORT = process.env.PORT || 5000;
       app.listen(PORT, () => {
@@ -59,5 +57,4 @@ AppDataSource.initialize()
   })
   .catch((err) => console.log("Database connection error:", err));
 
-// CRITICAL FOR VERCEL: Export the raw Express app
 module.exports = app;
