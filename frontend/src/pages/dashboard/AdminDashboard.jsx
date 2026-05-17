@@ -9,30 +9,22 @@ const AdminDashboard = () => {
     rejected: 0
   });
 
-  // 1. New state to hold our dynamically generated officer report
   const [officerStats, setOfficerStats] = useState([]);
-  const [debugLog, setDebugLog] = useState("Waiting for server response...");
 
   useEffect(() => {
     const fetchDashboardMetrics = async () => {
       try {
         const response = await axiosInstance.get('/claims');
-        setDebugLog(JSON.stringify(response.data, null, 2));
-
-        let claimsArray = [];
-        if (Array.isArray(response.data)) {
-          claimsArray = response.data;
-        } else if (response.data && Array.isArray(response.data.data)) {
-          claimsArray = response.data.data;
-        } else if (response.data && Array.isArray(response.data.claims)) {
-          claimsArray = response.data.claims;
-        }
+        
+        // Safely extract the array exactly how your backend formats it
+        const claimsArray = response.data.data || [];
 
         // --- TOP METRICS CALCULATION ---
+        // Notice we are checking for 'pending' now!
         const total = claimsArray.length;
-        const underReviewCount = claimsArray.filter(c => c.status?.toLowerCase() === 'under review').length;
-        const approvedCount = claimsArray.filter(c => c.status?.toLowerCase() === 'approved').length;
-        const rejectedCount = claimsArray.filter(c => c.status?.toLowerCase() === 'rejected').length;
+        const underReviewCount = claimsArray.filter(c => c.status === 'pending' || c.status === 'under review').length;
+        const approvedCount = claimsArray.filter(c => c.status === 'approved').length;
+        const rejectedCount = claimsArray.filter(c => c.status === 'rejected').length;
 
         setStats({
           totalClaims: total,
@@ -41,15 +33,15 @@ const AdminDashboard = () => {
           rejected: rejectedCount
         });
 
-        // --- 🚀 NEW: OFFICER PERFORMANCE CALCULATION ---
+        // --- OFFICER PERFORMANCE CALCULATION ---
         const officerMap = {};
 
         claimsArray.forEach(claim => {
-          // Check if this claim has an assigned officer
+          // Look at your JSON: we check if assignedOfficer exists and has a name
           if (claim.assignedOfficer && claim.assignedOfficer.name) {
             const officerName = claim.assignedOfficer.name;
             
-            // If this officer isn't in our map yet, add them
+            // If they aren't in the list yet, add them
             if (!officerMap[officerName]) {
               officerMap[officerName] = { 
                 name: officerName, 
@@ -59,18 +51,17 @@ const AdminDashboard = () => {
               };
             }
             
-            // Tally up their specific stats
+            // Tally up their stats based on the backend data
             officerMap[officerName].totalAssigned += 1;
-            if (claim.status?.toLowerCase() === 'approved') officerMap[officerName].approved += 1;
-            if (claim.status?.toLowerCase() === 'under review') officerMap[officerName].pending += 1;
+            if (claim.status === 'approved') officerMap[officerName].approved += 1;
+            if (claim.status === 'pending' || claim.status === 'under review') officerMap[officerName].pending += 1;
           }
         });
 
-        // Convert the map object back into a clean array for React to render
         setOfficerStats(Object.values(officerMap));
 
       } catch (error) {
-        setDebugLog(`SERVER ERROR: ${error.message}`);
+        console.error("Failed to load metrics:", error);
       }
     };
 
@@ -82,11 +73,6 @@ const AdminDashboard = () => {
       
       {/* 🔑 MAIN HEADER */}
       <div className="mb-8">
-        {/* Optional: You can remove this debugger block now if you don't want it visible in production */}
-        <div className="hidden">
-           <pre>{debugLog}</pre>
-        </div>
-        
         <h1 className="text-3xl font-extrabold tracking-tight text-slate-800 dark:text-white transition-colors duration-300">
           System Overview
         </h1>
@@ -95,8 +81,9 @@ const AdminDashboard = () => {
         </p>
       </div>
 
-      {/* 📊 METRIC CARDS GRID (Unchanged) */}
+      {/* 📊 METRIC CARDS GRID */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        
         <div className="relative overflow-hidden rounded-2xl border border-white/40 dark:border-slate-800 bg-white/15 dark:bg-slate-900/20 backdrop-blur-3xl p-6 shadow-xl shadow-slate-200/30 dark:shadow-none transition-all duration-300 hover:scale-[1.02]">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Total Claims</span>
@@ -142,6 +129,7 @@ const AdminDashboard = () => {
           </div>
           <p className="mt-2 text-xs font-bold text-rose-600 dark:text-rose-400">Declined claims</p>
         </div>
+
       </div>
 
       {/* 📉 DYNAMIC PERFORMANCE REPORT SECTION */}
@@ -155,7 +143,6 @@ const AdminDashboard = () => {
           </p>
         </div>
 
-        {/* CONDITIONALLY RENDER: If no officers have claims yet, show empty state. Otherwise, show list. */}
         {officerStats.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 px-4 rounded-xl border border-dashed border-slate-300/50 dark:border-slate-800 bg-white/10 dark:bg-slate-950/20">
             <svg className="w-8 h-8 text-slate-400 dark:text-slate-600 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -167,7 +154,6 @@ const AdminDashboard = () => {
           </div>
         ) : (
           <div className="space-y-4">
-            {/* RENDER DYNAMIC ROWS */}
             {officerStats.map((officer, index) => (
               <div key={index} className="flex items-center justify-between p-4 rounded-xl bg-white/5 dark:bg-black/20 border border-white/20 dark:border-white/5 backdrop-blur-md shadow-inner transition-colors duration-200">
                 <div className="flex items-center gap-4">
