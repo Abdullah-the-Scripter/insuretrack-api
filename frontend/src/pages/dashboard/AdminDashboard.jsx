@@ -1,13 +1,43 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import axiosInstance from '../../api/axiosInstance'; // Adjust path if needed
 
 const AdminDashboard = () => {
-  // Mock data for display - replace with your actual state/selectors if needed
-  const stats = {
-    totalClaims: 2,
+  // 1. Swap hardcoded mock data for dynamic React state
+  const [stats, setStats] = useState({
+    totalClaims: 0,
     underReview: 0,
     approved: 0,
     rejected: 0
-  };
+  });
+
+  // 2. Fetch live data from the backend when the dashboard loads
+  useEffect(() => {
+    const fetchDashboardMetrics = async () => {
+      try {
+        // Fetch the full list of claims from your existing endpoint
+        const response = await axiosInstance.get('/claims');
+        const claims = response.data;
+
+        // Count them up dynamically based on their live status
+        const total = claims.length;
+        const underReviewCount = claims.filter(c => c.status === 'under review').length;
+        const approvedCount = claims.filter(c => c.status === 'approved').length;
+        const rejectedCount = claims.filter(c => c.status === 'rejected').length;
+
+        // Update the screen with the real numbers
+        setStats({
+          totalClaims: total,
+          underReview: underReviewCount,
+          approved: approvedCount,
+          rejected: rejectedCount
+        });
+      } catch (error) {
+        console.error("Failed to load live metrics:", error);
+      }
+    };
+
+    fetchDashboardMetrics();
+  }, []);
 
   return (
     <div className="space-y-6 p-6 max-w-7xl mx-auto relative z-10">
@@ -99,7 +129,7 @@ const AdminDashboard = () => {
       </div>
 
       {/* 📉 PERFORMANCE REPORT SECTION */}
-      <div className="relative rounded-2xl border border-white/40 dark:border-slate-800 bg-white/15 dark:bg-slate-900/20 backdrop-blur-3xl p-6 shadow-xl shadow-slate-200/30 dark:shadow-none transition-all duration-300">
+      <div className="relative rounded-2xl border border-white/40 dark:border-slate-800 bg-white/15 dark:bg-slate-900/20 backdrop-blur-3xl p-6 shadow-xl shadow-slate-200/30 dark:shadow-none transition-all duration-300 mt-6">
         <div className="mb-6">
           <h2 className="text-lg font-bold tracking-tight text-slate-800 dark:text-white">
             Officer Performance Report
