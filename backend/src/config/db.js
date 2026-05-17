@@ -1,17 +1,17 @@
 require("dotenv").config();
 const { DataSource } = require("typeorm");
-const path = require("path");
+
+const User = require("../entities/User");
+const Claim = require("../entities/Claim");
+const Comment = require("../entities/Comment");
 
 const AppDataSource = new DataSource({
   type: "postgres",
-  host: process.env.DB_HOST,
-  port: process.env.DB_PORT,
-  username: process.env.DB_USER,
-  password: process.env.DB_PASS,
-  database: process.env.DB_NAME,
+  // Fix: Feed the complete Supabase URL string directly from your Vercel settings
+  url: process.env.DATABASE_URL,
   synchronize: true, 
   logging: false,
-  entities: [path.join(__dirname, "../entities/*.js")],
+  entities: [User, Claim, Comment],
   extra: {
     ssl: {
       rejectUnauthorized: false,
