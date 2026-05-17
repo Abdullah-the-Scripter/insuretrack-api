@@ -34,7 +34,8 @@ const ClaimsList = () => {
     setLoading(true);
     try {
       const res = await axiosInstance.get('/claims', {
-        params: { search, status: statusFilter, page: pageIndex + 1, limit: 10, assignment: assignmentFilter },
+        // 🔑 UPDATED: Set limit to 2 instead of 10 to enable pagination with 3 database items
+        params: { search, status: statusFilter, page: pageIndex + 1, limit: 2, assignment: assignmentFilter },
       });
       setData(res.data.data ?? res.data);
       setTotalPages(res.data.lastPage ?? 1);
@@ -208,12 +209,20 @@ const ClaimsList = () => {
             Page <span className="text-slate-900 dark:text-white">{pageIndex + 1}</span> of <span className="text-slate-900 dark:text-white">{totalPages || 1}</span>
           </span>
           <div className="flex gap-2">
-            <Button variant="secondary" onClick={() => setPageIndex((p) => Math.max(0, p - 1))} disabled={pageIndex === 0} className="!py-1.5 !px-4">
+            <button 
+              onClick={() => setPageIndex((p) => Math.max(0, p - 1))} 
+              disabled={pageIndex === 0} 
+              className={`text-xs font-bold px-4 py-2 rounded-lg transition-all border text-slate-700 dark:text-white bg-slate-200/50 dark:bg-white/10 border-slate-300/50 dark:border-white/10 ${pageIndex === 0 ? 'opacity-40 cursor-not-allowed' : 'hover:bg-slate-300/50 dark:hover:bg-white/20'}`}
+            >
               Previous
-            </Button>
-            <Button variant="secondary" onClick={() => setPageIndex((p) => p + 1)} disabled={pageIndex >= totalPages - 1} className="!py-1.5 !px-4">
+            </button>
+            <button 
+              onClick={() => setPageIndex((p) => p + 1)} 
+              disabled={pageIndex >= totalPages - 1} 
+              className={`text-xs font-bold px-4 py-2 rounded-lg transition-all border text-slate-700 dark:text-white bg-slate-200/50 dark:bg-white/10 border-slate-300/50 dark:border-white/10 ${pageIndex >= totalPages - 1 ? 'opacity-40 cursor-not-allowed' : 'hover:bg-slate-300/50 dark:hover:bg-white/20'}`}
+            >
               Next
-            </Button>
+            </button>
           </div>
         </div>
       </Card>

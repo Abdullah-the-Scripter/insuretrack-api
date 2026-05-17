@@ -40,7 +40,7 @@ exports.getClaims = asyncHandler(async (req, res) => {
     await AppDataSource.initialize();
   }
   const repo = AppDataSource.getRepository(Claim);
-  const { page = 1, limit = 10, status, type, search, sort = "DESC", assignment } = req.query;
+  const { page = 1, limit = 2, status, type, search, sort = "DESC", assignment } = req.query;
 
   const qb = repo
     .createQueryBuilder("claim")
