@@ -183,7 +183,7 @@
   }
 }
 
-/* 🔑 RESPONSIVE FORMS SAFETY OVERLAYS */
+/* Ensure active authentication fields draw cleanly over custom background grids */
 #center, 
 .pages, 
 form, 

@@ -34,7 +34,7 @@ const InteractiveItem = ({ el, globalMouseX, globalMouseY, isParticle = false, i
   useEffect(() => {
     let animationFrameId;
     
-    const handleMouseMove = (e) => {
+    const handleInteraction = (clientX, clientY) => {
       if (!itemRef.current || isOrb) return;
       
       cancelAnimationFrame(animationFrameId);
@@ -43,11 +43,10 @@ const InteractiveItem = ({ el, globalMouseX, globalMouseY, isParticle = false, i
         const centerX = rect.left + rect.width / 2;
         const centerY = rect.top + rect.height / 2;
 
-        const distanceX = e.clientX - centerX;
-        const distanceY = e.clientY - centerY;
+        const distanceX = clientX - centerX;
+        const distanceY = clientY - centerY;
         const distance = Math.sqrt(distanceX ** 2 + distanceY ** 2);
         
-        // 🔑 SMART SCALE: Shrink interaction physics bubble on mobile screen states
         const isMobile = window.innerWidth < 768;
         const radius = isMobile ? 110 : 250; 
 
@@ -64,9 +63,20 @@ const InteractiveItem = ({ el, globalMouseX, globalMouseY, isParticle = false, i
       });
     };
 
-    window.addEventListener('mousemove', handleMouseMove, { passive: true });
+    const onMouseMove = (e) => handleInteraction(e.clientX, e.clientY);
+    
+    const onTouchMove = (e) => {
+      if (e.touches && e.touches.length > 0) {
+        handleInteraction(e.touches[0].clientX, e.touches[0].clientY);
+      }
+    };
+
+    window.addEventListener('mousemove', onMouseMove, { passive: true });
+    window.addEventListener('touchmove', onTouchMove, { passive: true });
+    
     return () => {
-      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('touchmove', onTouchMove);
       cancelAnimationFrame(animationFrameId);
     };
   }, [x, y, isOrb]);
@@ -154,16 +164,28 @@ const FloatingBackground = () => {
   }, []);
 
   useEffect(() => {
-    const updateMousePos = (e) => {
-      mouseX.set(e.clientX);
-      mouseY.set(e.clientY);
+    const updatePosition = (clientX, clientY) => {
+      mouseX.set(clientX);
+      mouseY.set(clientY);
     };
-    window.addEventListener("mousemove", updateMousePos, { passive: true });
-    return () => window.removeEventListener("mousemove", updateMousePos);
+
+    const onMouseMove = (e) => updatePosition(e.clientX, e.clientY);
+    const onTouchMove = (e) => {
+      if (e.touches && e.touches.length > 0) {
+        updatePosition(e.touches[0].clientX, e.touches[0].clientY);
+      }
+    };
+
+    window.addEventListener("mousemove", onMouseMove, { passive: true });
+    window.addEventListener("touchmove", onTouchMove, { passive: true });
+    
+    return () => {
+      window.removeEventListener("mousemove", onMouseMove);
+      window.removeEventListener("touchmove", onTouchMove);
+    };
   }, [mouseX, mouseY]);
 
   const createElements = (length, sizeMin, sizeMax, durMin, durMax, opac, blur, pRatio) => {
-    // 🔑 SMART FIX: Scale element counts, baseline sizes, and path drift range dynamically on mobile viewports
     const targetLength = isMobile ? Math.ceil(length * 0.3) : length;
     const sizeScale = isMobile ? 0.55 : 1.0;
     const driftScale = isMobile ? 0.4 : 1.0;
