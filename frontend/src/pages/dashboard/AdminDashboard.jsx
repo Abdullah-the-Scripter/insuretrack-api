@@ -8,18 +8,15 @@ const AdminDashboard = () => {
     approved: 0,
     rejected: 0
   });
-  
-  // 🚨 NEW: State to hold exactly what the server says
+
+  // 1. New state to hold our dynamically generated officer report
+  const [officerStats, setOfficerStats] = useState([]);
   const [debugLog, setDebugLog] = useState("Waiting for server response...");
 
   useEffect(() => {
     const fetchDashboardMetrics = async () => {
       try {
-        // 🤔 Is it possible your backend expects '/admin/claims' for the full list?
-        // If so, change this URL!
         const response = await axiosInstance.get('/claims');
-        
-        // Print the exact raw data to the screen
         setDebugLog(JSON.stringify(response.data, null, 2));
 
         let claimsArray = [];
@@ -31,6 +28,7 @@ const AdminDashboard = () => {
           claimsArray = response.data.claims;
         }
 
+        // --- TOP METRICS CALCULATION ---
         const total = claimsArray.length;
         const underReviewCount = claimsArray.filter(c => c.status?.toLowerCase() === 'under review').length;
         const approvedCount = claimsArray.filter(c => c.status?.toLowerCase() === 'approved').length;
@@ -43,9 +41,36 @@ const AdminDashboard = () => {
           rejected: rejectedCount
         });
 
+        // --- 🚀 NEW: OFFICER PERFORMANCE CALCULATION ---
+        const officerMap = {};
+
+        claimsArray.forEach(claim => {
+          // Check if this claim has an assigned officer
+          if (claim.assignedOfficer && claim.assignedOfficer.name) {
+            const officerName = claim.assignedOfficer.name;
+            
+            // If this officer isn't in our map yet, add them
+            if (!officerMap[officerName]) {
+              officerMap[officerName] = { 
+                name: officerName, 
+                totalAssigned: 0, 
+                approved: 0, 
+                pending: 0 
+              };
+            }
+            
+            // Tally up their specific stats
+            officerMap[officerName].totalAssigned += 1;
+            if (claim.status?.toLowerCase() === 'approved') officerMap[officerName].approved += 1;
+            if (claim.status?.toLowerCase() === 'under review') officerMap[officerName].pending += 1;
+          }
+        });
+
+        // Convert the map object back into a clean array for React to render
+        setOfficerStats(Object.values(officerMap));
+
       } catch (error) {
-        // If the request crashes, print the exact error to the screen
-        setDebugLog(`SERVER ERROR: ${error.message}\nStatus Code: ${error.response?.status}\nDetails: ${JSON.stringify(error.response?.data)}`);
+        setDebugLog(`SERVER ERROR: ${error.message}`);
       }
     };
 
@@ -55,18 +80,13 @@ const AdminDashboard = () => {
   return (
     <div className="space-y-6 p-6 max-w-7xl mx-auto relative z-10">
       
-      {/* 🚨 THE DEBUGGER TERMINAL - This will show us the truth */}
-      <div className="bg-slate-950 border border-slate-700 rounded-xl p-4 font-mono text-xs shadow-2xl mb-8">
-        <div className="text-emerald-400 font-black uppercase tracking-widest mb-2 border-b border-slate-800 pb-2">
-          🛠️ System Debugger (Raw Backend Data)
-        </div>
-        <pre className="text-slate-300 overflow-x-auto whitespace-pre-wrap max-h-64">
-          {debugLog}
-        </pre>
-      </div>
-
       {/* 🔑 MAIN HEADER */}
       <div className="mb-8">
+        {/* Optional: You can remove this debugger block now if you don't want it visible in production */}
+        <div className="hidden">
+           <pre>{debugLog}</pre>
+        </div>
+        
         <h1 className="text-3xl font-extrabold tracking-tight text-slate-800 dark:text-white transition-colors duration-300">
           System Overview
         </h1>
@@ -75,10 +95,8 @@ const AdminDashboard = () => {
         </p>
       </div>
 
-      {/* 📊 METRIC CARDS GRID */}
+      {/* 📊 METRIC CARDS GRID (Unchanged) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        
-        {/* TOTAL CLAIMS CARD */}
         <div className="relative overflow-hidden rounded-2xl border border-white/40 dark:border-slate-800 bg-white/15 dark:bg-slate-900/20 backdrop-blur-3xl p-6 shadow-xl shadow-slate-200/30 dark:shadow-none transition-all duration-300 hover:scale-[1.02]">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Total Claims</span>
@@ -89,7 +107,6 @@ const AdminDashboard = () => {
           <p className="mt-2 text-xs font-semibold text-slate-500 dark:text-slate-400">All time records</p>
         </div>
 
-        {/* UNDER REVIEW CARD */}
         <div className="relative overflow-hidden rounded-2xl border border-white/40 dark:border-slate-800 bg-white/15 dark:bg-slate-900/20 backdrop-blur-3xl p-6 shadow-xl shadow-slate-200/30 dark:shadow-none transition-all duration-300 hover:scale-[1.02]">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
@@ -102,7 +119,6 @@ const AdminDashboard = () => {
           <p className="mt-2 text-xs font-bold text-amber-600 dark:text-amber-400">Active caseload</p>
         </div>
 
-        {/* APPROVED CARD */}
         <div className="relative overflow-hidden rounded-2xl border border-white/40 dark:border-slate-800 bg-white/15 dark:bg-slate-900/20 backdrop-blur-3xl p-6 shadow-xl shadow-slate-200/30 dark:shadow-none transition-all duration-300 hover:scale-[1.02]">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
@@ -115,7 +131,6 @@ const AdminDashboard = () => {
           <p className="mt-2 text-xs font-bold text-emerald-600 dark:text-emerald-400">Processed successfully</p>
         </div>
 
-        {/* REJECTED CARD */}
         <div className="relative overflow-hidden rounded-2xl border border-white/40 dark:border-slate-800 bg-white/15 dark:bg-slate-900/20 backdrop-blur-3xl p-6 shadow-xl shadow-slate-200/30 dark:shadow-none transition-all duration-300 hover:scale-[1.02]">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
@@ -127,7 +142,59 @@ const AdminDashboard = () => {
           </div>
           <p className="mt-2 text-xs font-bold text-rose-600 dark:text-rose-400">Declined claims</p>
         </div>
+      </div>
 
+      {/* 📉 DYNAMIC PERFORMANCE REPORT SECTION */}
+      <div className="relative rounded-2xl border border-white/40 dark:border-slate-800 bg-white/15 dark:bg-slate-900/20 backdrop-blur-3xl p-6 shadow-xl shadow-slate-200/30 dark:shadow-none transition-all duration-300 mt-6">
+        <div className="mb-6">
+          <h2 className="text-lg font-bold tracking-tight text-slate-800 dark:text-white">
+            Officer Performance Report
+          </h2>
+          <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 mt-0.5">
+            Claims handled per assigned officer
+          </p>
+        </div>
+
+        {/* CONDITIONALLY RENDER: If no officers have claims yet, show empty state. Otherwise, show list. */}
+        {officerStats.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-12 px-4 rounded-xl border border-dashed border-slate-300/50 dark:border-slate-800 bg-white/10 dark:bg-slate-950/20">
+            <svg className="w-8 h-8 text-slate-400 dark:text-slate-600 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+            </svg>
+            <div className="text-sm font-bold text-slate-500 dark:text-slate-400 text-center">
+              No officers have been assigned claims yet.
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {/* RENDER DYNAMIC ROWS */}
+            {officerStats.map((officer, index) => (
+              <div key={index} className="flex items-center justify-between p-4 rounded-xl bg-white/5 dark:bg-black/20 border border-white/20 dark:border-white/5 backdrop-blur-md shadow-inner transition-colors duration-200">
+                <div className="flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center text-white font-black shadow-lg shadow-blue-500/30 text-sm">
+                    {officer.name.charAt(0).toUpperCase()}
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-bold text-slate-900 dark:text-white tracking-tight">{officer.name}</h4>
+                    <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">Total Cases: {officer.totalAssigned}</p>
+                  </div>
+                </div>
+                
+                <div className="flex items-center gap-6">
+                  <div className="text-center">
+                    <span className="block text-[10px] font-black uppercase tracking-widest text-emerald-500/70 dark:text-emerald-400/70 mb-1">Approved</span>
+                    <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400">{officer.approved}</span>
+                  </div>
+                  <div className="w-px h-8 bg-slate-300 dark:bg-slate-700"></div>
+                  <div className="text-center">
+                    <span className="block text-[10px] font-black uppercase tracking-widest text-amber-500/70 dark:text-amber-400/70 mb-1">Pending</span>
+                    <span className="text-sm font-bold text-amber-600 dark:text-amber-400">{officer.pending}</span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
