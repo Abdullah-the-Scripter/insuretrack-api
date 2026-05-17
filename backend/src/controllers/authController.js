@@ -3,10 +3,19 @@ const jwt = require("jsonwebtoken");
 const AppDataSource = require("../config/db");
 const asyncHandler = require("../middleware/asyncHandler");
 
-exports.register = async (req, res) => {
-  const repo = AppDataSource.getRepository("User");
+// 🔑 CRITICAL FIX: Import the actual User EntitySchema object
+const User = require("../entities/User"); 
 
+exports.register = async (req, res) => {
   try {
+    // 🔑 CRITICAL FIX: Ensure the serverless connection is active before grabbing the repository
+    if (!AppDataSource.isInitialized) {
+      await AppDataSource.initialize();
+    }
+
+    // 🔑 CRITICAL FIX: Pass the User object instead of the string "User"
+    const repo = AppDataSource.getRepository(User);
+
     const hashedPassword = await bcrypt.hash(req.body.password, 10);
 
     const user = repo.create({
@@ -35,7 +44,13 @@ exports.register = async (req, res) => {
 };
 
 exports.login = asyncHandler(async (req, res) => {
-  const repo = AppDataSource.getRepository("User");
+  // 🔑 CRITICAL FIX: Ensure initialization guard for login route too
+  if (!AppDataSource.isInitialized) {
+    await AppDataSource.initialize();
+  }
+
+  // 🔑 CRITICAL FIX: Pass the User object instead of the string "User"
+  const repo = AppDataSource.getRepository(User);
   const user = await repo.findOneBy({ email: req.body.email });
 
   if (!user) {
