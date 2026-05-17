@@ -15,12 +15,9 @@ const AdminDashboard = () => {
     const fetchDashboardMetrics = async () => {
       try {
         const response = await axiosInstance.get('/claims');
-        
-        // Safely extract the array exactly how your backend formats it
         const claimsArray = response.data.data || [];
 
         // --- TOP METRICS CALCULATION ---
-        // Notice we are checking for 'pending' now!
         const total = claimsArray.length;
         const underReviewCount = claimsArray.filter(c => c.status === 'pending' || c.status === 'under review').length;
         const approvedCount = claimsArray.filter(c => c.status === 'approved').length;
@@ -33,28 +30,27 @@ const AdminDashboard = () => {
           rejected: rejectedCount
         });
 
-        // --- OFFICER PERFORMANCE CALCULATION ---
+        // --- OFFICER PERFORMANCE & RATES CALCULATION ---
         const officerMap = {};
 
         claimsArray.forEach(claim => {
-          // Look at your JSON: we check if assignedOfficer exists and has a name
           if (claim.assignedOfficer && claim.assignedOfficer.name) {
             const officerName = claim.assignedOfficer.name;
             
-            // If they aren't in the list yet, add them
             if (!officerMap[officerName]) {
               officerMap[officerName] = { 
                 name: officerName, 
                 totalAssigned: 0, 
                 approved: 0, 
-                pending: 0 
+                pending: 0,
+                rejected: 0 // Added rejection tracking
               };
             }
             
-            // Tally up their stats based on the backend data
             officerMap[officerName].totalAssigned += 1;
             if (claim.status === 'approved') officerMap[officerName].approved += 1;
             if (claim.status === 'pending' || claim.status === 'under review') officerMap[officerName].pending += 1;
+            if (claim.status === 'rejected') officerMap[officerName].rejected += 1;
           }
         });
 
@@ -83,7 +79,6 @@ const AdminDashboard = () => {
 
       {/* 📊 METRIC CARDS GRID */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        
         <div className="relative overflow-hidden rounded-2xl border border-white/40 dark:border-slate-800 bg-white/15 dark:bg-slate-900/20 backdrop-blur-3xl p-6 shadow-xl shadow-slate-200/30 dark:shadow-none transition-all duration-300 hover:scale-[1.02]">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Total Claims</span>
@@ -129,7 +124,6 @@ const AdminDashboard = () => {
           </div>
           <p className="mt-2 text-xs font-bold text-rose-600 dark:text-rose-400">Declined claims</p>
         </div>
-
       </div>
 
       {/* 📉 DYNAMIC PERFORMANCE REPORT SECTION */}
@@ -139,46 +133,57 @@ const AdminDashboard = () => {
             Officer Performance Report
           </h2>
           <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 mt-0.5">
-            Claims handled per assigned officer
+            Claim resolution rates per assigned officer
           </p>
         </div>
 
         {officerStats.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 px-4 rounded-xl border border-dashed border-slate-300/50 dark:border-slate-800 bg-white/10 dark:bg-slate-950/20">
-            <svg className="w-8 h-8 text-slate-400 dark:text-slate-600 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-            </svg>
             <div className="text-sm font-bold text-slate-500 dark:text-slate-400 text-center">
               No officers have been assigned claims yet.
             </div>
           </div>
         ) : (
           <div className="space-y-4">
-            {officerStats.map((officer, index) => (
-              <div key={index} className="flex items-center justify-between p-4 rounded-xl bg-white/5 dark:bg-black/20 border border-white/20 dark:border-white/5 backdrop-blur-md shadow-inner transition-colors duration-200">
-                <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center text-white font-black shadow-lg shadow-blue-500/30 text-sm">
-                    {officer.name.charAt(0).toUpperCase()}
+            {officerStats.map((officer, index) => {
+              // 🧮 CALCULATE PERCENTAGES DYNAMICALLY
+              const approvedRate = officer.totalAssigned > 0 ? Math.round((officer.approved / officer.totalAssigned) * 100) : 0;
+              const rejectedRate = officer.totalAssigned > 0 ? Math.round((officer.rejected / officer.totalAssigned) * 100) : 0;
+              const pendingRate = officer.totalAssigned > 0 ? Math.round((officer.pending / officer.totalAssigned) * 100) : 0;
+
+              return (
+                <div key={index} className="flex flex-col md:flex-row md:items-center justify-between p-5 rounded-xl bg-white/5 dark:bg-black/20 border border-white/20 dark:border-white/5 backdrop-blur-md shadow-inner transition-colors duration-200 gap-6">
+                  
+                  {/* LEFT: Identity */}
+                  <div className="flex items-center gap-4 min-w-[200px]">
+                    <div className="w-12 h-12 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center text-white font-black shadow-lg shadow-blue-500/30 text-lg">
+                      {officer.name.charAt(0).toUpperCase()}
+                    </div>
+                    <div>
+                      <h4 className="text-base font-bold text-slate-900 dark:text-white tracking-tight">{officer.name}</h4>
+                      <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">Total Assigned: {officer.totalAssigned}</p>
+                    </div>
                   </div>
-                  <div>
-                    <h4 className="text-sm font-bold text-slate-900 dark:text-white tracking-tight">{officer.name}</h4>
-                    <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">Total Cases: {officer.totalAssigned}</p>
+                  
+                  {/* RIGHT: Visual Distribution Bar */}
+                  <div className="flex-1 w-full max-w-xl">
+                    <div className="flex justify-between text-[10px] font-black uppercase tracking-widest mb-2">
+                      <span className="text-emerald-600 dark:text-emerald-400">{approvedRate}% Approved ({officer.approved})</span>
+                      <span className="text-slate-500 dark:text-slate-400">{pendingRate}% Pending ({officer.pending})</span>
+                      <span className="text-rose-600 dark:text-rose-400">{rejectedRate}% Declined ({officer.rejected})</span>
+                    </div>
+                    
+                    {/* The Multi-Color Progress Bar */}
+                    <div className="h-2.5 w-full bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden flex shadow-inner">
+                      <div style={{width: `${approvedRate}%`}} className="bg-emerald-500 hover:bg-emerald-400 transition-all duration-500"></div>
+                      <div style={{width: `${pendingRate}%`}} className="bg-amber-500 hover:bg-amber-400 transition-all duration-500"></div>
+                      <div style={{width: `${rejectedRate}%`}} className="bg-rose-500 hover:bg-rose-400 transition-all duration-500"></div>
+                    </div>
                   </div>
+                  
                 </div>
-                
-                <div className="flex items-center gap-6">
-                  <div className="text-center">
-                    <span className="block text-[10px] font-black uppercase tracking-widest text-emerald-500/70 dark:text-emerald-400/70 mb-1">Approved</span>
-                    <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400">{officer.approved}</span>
-                  </div>
-                  <div className="w-px h-8 bg-slate-300 dark:bg-slate-700"></div>
-                  <div className="text-center">
-                    <span className="block text-[10px] font-black uppercase tracking-widest text-amber-500/70 dark:text-amber-400/70 mb-1">Pending</span>
-                    <span className="text-sm font-bold text-amber-600 dark:text-amber-400">{officer.pending}</span>
-                  </div>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
