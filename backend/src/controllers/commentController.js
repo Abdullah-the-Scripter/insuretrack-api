@@ -1,7 +1,7 @@
 const AppDataSource = require("../config/db");
 const asyncHandler = require("../middleware/asyncHandler");
 
-exports.addComment = asyncHandler(async (req, res, next) => {
+exports.addComment = asyncHandler(async (req, res) => {
   const repo = AppDataSource.getRepository("Comment");
 
   if (!req.body.message || !req.body.claimId) {
@@ -15,14 +15,14 @@ exports.addComment = asyncHandler(async (req, res, next) => {
   });
 
   await repo.save(comment);
-  res.status(201).json(comment);
+  return res.status(201).json(comment);
 });
 
-exports.getComments = asyncHandler(async (req, res, next) => {
+exports.getComments = asyncHandler(async (req, res) => {
   const repo = AppDataSource.getRepository("Comment");
   const comments = await repo.find({
     where: { claim: { id: req.params.claimId } },
-    order: { createdAt: "ASC" }, // Best practice: chronological timeline
+    order: { createdAt: "ASC" }, 
   });
-  res.json(comments);
+  return res.json(comments);
 });

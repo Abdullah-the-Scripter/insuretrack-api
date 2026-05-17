@@ -4,12 +4,11 @@ const asyncHandler = require("../middleware/asyncHandler");
 exports.createClaim = asyncHandler(async (req, res) => {
   const repo = AppDataSource.getRepository("Claim");
   
-  // Check if multer/Cloudinary successfully processed a file
   let docMeta = null;
   if (req.file) {
     docMeta = {
-      fileUrl: req.file.path,            // <--- THE FULL SECURE CLOUDINARY URL
-      fileName: req.file.filename,      // Cloudinary's public ID
+      fileUrl: req.file.path, 
+      fileName: req.file.filename, 
       originalName: req.file.originalname,
       mimetype: req.file.mimetype,
       size: req.file.size,
@@ -26,12 +25,11 @@ exports.createClaim = asyncHandler(async (req, res) => {
   });
   
   await repo.save(claim);
-  res.status(201).json(claim);
+  return res.status(201).json(claim);
 });
 
 exports.getClaims = asyncHandler(async (req, res) => {
   const repo = AppDataSource.getRepository("Claim");
-  
   const { page = 1, limit = 10, status, type, search, sort = "DESC", assignment } = req.query;
 
   const qb = repo
@@ -39,7 +37,6 @@ exports.getClaims = asyncHandler(async (req, res) => {
     .leftJoinAndSelect("claim.user", "user")
     .leftJoinAndSelect("claim.assignedOfficer", "officer");
 
-  // ROLE-BASED VISIBILITY RULES
   if (req.user.role === "policyholder") {
     qb.andWhere("claim.user.id = :userId", { userId: req.user.id });
   } else if (req.user.role === "officer") {
@@ -59,7 +56,7 @@ exports.getClaims = asyncHandler(async (req, res) => {
 
   const [data, total] = await qb.getManyAndCount();
 
-  res.json({
+  return res.json({
     data,
     total,
     page: Number(page),
@@ -76,24 +73,19 @@ exports.getClaimById = asyncHandler(async (req, res) => {
 
   if (!claim) return res.status(404).json({ msg: "Claim not found" });
 
-  // Security constraint
   if (req.user.role === "policyholder" && claim.user.id !== req.user.id) {
     return res.status(403).json({ msg: "Access denied" });
   }
 
-  // Security constraint: Officers cannot view claims assigned to another officer
-  if (req.user.role === "officer") {
-    if (claim.assignedOfficer && claim.assignedOfficer.id !== req.user.id) {
-       return res.status(403).json({ msg: "This claim is assigned to another officer" });
-    }
+  if (req.user.role === "officer" && claim.assignedOfficer && claim.assignedOfficer.id !== req.user.id) {
+    return res.status(403).json({ msg: "This claim is assigned to another officer" });
   }
 
-  res.json(claim);
+  return res.json(claim);
 });
 
 exports.updateStatus = asyncHandler(async (req, res) => {
   const repo = AppDataSource.getRepository("Claim");
-
   const claim = await repo.findOne({
     where: { id: req.params.id },
     relations: ["assignedOfficer"]
@@ -101,15 +93,12 @@ exports.updateStatus = asyncHandler(async (req, res) => {
 
   if (!claim) return res.status(404).json({ msg: "Claim not found" });
 
-  // Security constraint: Officers can only update statuses of THEIR assigned claims
-  if (req.user.role === "officer") {
-    if (!claim.assignedOfficer || claim.assignedOfficer.id !== req.user.id) {
-      return res.status(403).json({ msg: "You can only update statuses of claims assigned to you." });
-    }
+  if (req.user.role === "officer" && (!claim.assignedOfficer || claim.assignedOfficer.id !== req.user.id)) {
+    return res.status(403).json({ msg: "You can only update statuses of claims assigned to you." });
   }
 
   await repo.update(req.params.id, { status: req.body.status });
-  res.json({ msg: "Status updated" });
+  return res.json({ msg: "Status updated" });
 });
 
 exports.assignOfficer = asyncHandler(async (req, res) => {
@@ -117,5 +106,5 @@ exports.assignOfficer = asyncHandler(async (req, res) => {
   await repo.update(req.params.id, {
     assignedOfficer: { id: req.body.officerId }
   });
-  res.json({ msg: "Officer assigned successfully" });
+  return res.json({ msg: "Officer assigned successfully" });
 });

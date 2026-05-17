@@ -16,17 +16,26 @@ exports.register = async (req, res) => {
       role: 'policyholder', 
     });
 
-    await repo.save(user);
+    const savedUser = await repo.save(user);
 
-    res.json(user);
+    return res.status(201).json({
+      success: true,
+      message: "Registration successful!",
+      user: {
+        id: savedUser.id,
+        name: savedUser.name,
+        email: savedUser.email,
+        role: savedUser.role
+      }
+    });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error("Registration Logic Error:", err);
+    return res.status(500).json({ error: err.message });
   }
 };
 
 exports.login = asyncHandler(async (req, res) => {
   const repo = AppDataSource.getRepository("User");
-
   const user = await repo.findOneBy({ email: req.body.email });
 
   if (!user) {
@@ -34,7 +43,6 @@ exports.login = asyncHandler(async (req, res) => {
   }
 
   const isMatch = await bcrypt.compare(req.body.password, user.password);
-
   if (!isMatch) {
     return res.status(400).json({ msg: "Wrong password" });
   }
@@ -44,5 +52,8 @@ exports.login = asyncHandler(async (req, res) => {
     process.env.JWT_SECRET
   );
 
-  res.json({ token, user });
+  return res.json({ 
+    token, 
+    user: { id: user.id, name: user.name, email: user.email, role: user.role } 
+  });
 });

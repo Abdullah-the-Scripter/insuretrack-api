@@ -8,6 +8,6 @@ module.exports = new EntitySchema({
     name: { type: "varchar" },
     email: { type: "varchar", unique: true },
     password: { type: "varchar" },
-    role: { type: "varchar" }, // admin, officer, policyholder
+    role: { type: "varchar" }, 
   },
 });

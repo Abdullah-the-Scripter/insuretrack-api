@@ -9,12 +9,10 @@ const AppDataSource = new DataSource({
   username: process.env.DB_USER,
   password: process.env.DB_PASS,
   database: process.env.DB_NAME,
-  synchronize: true, // safe for prototyping/academic evaluation
+  synchronize: true, 
   logging: false,
-  // Fix: Use an absolute directory path string so Vercel's compiler bundles them properly
   entities: [path.join(__dirname, "../entities/*.js")],
   extra: {
-    // Fix: Force SSL connection verification required by Supabase in production
     ssl: {
       rejectUnauthorized: false,
     },

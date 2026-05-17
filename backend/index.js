@@ -4,7 +4,6 @@ require("reflect-metadata");
 const express = require("express");
 const cors = require("cors");
 
-// --- FIX: Point imports into the src/ folder ---
 const AppDataSource = require("./src/config/db");
 const errorHandler = require("./src/middleware/errorHandler");
 
@@ -32,21 +31,20 @@ app.use(cors({
 }));
 
 app.options('*', cors());
-
 app.use(express.json());
 
-// --- FIX: Point route imports into the src/ folder ---
+// --- ROUTES ---
 app.use("/api/auth", require("./src/routes/authRoutes"));
 app.use("/api/claims", require("./src/routes/claimRoutes"));
 app.use("/api/admin", require("./src/routes/adminRoutes"));
 
-// Error Handler
+// Error Handler Middleware
 app.use(errorHandler);
 
 // Initialize Database connection
 AppDataSource.initialize()
   .then(() => {
-    console.log("Database connected securely");
+    console.log("Database connected securely via SSL");
 
     if (process.env.NODE_ENV !== "production") {
       const PORT = process.env.PORT || 5000;
