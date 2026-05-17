@@ -1,4 +1,4 @@
-import React, { useMemo, useEffect, useRef } from 'react';
+import React, { useMemo, useEffect, useRef, useState } from 'react';
 import { motion, useMotionValue, useSpring, useTransform } from 'framer-motion';
 
 const ICONS = [
@@ -23,13 +23,11 @@ const COLORS = [
 const InteractiveItem = ({ el, globalMouseX, globalMouseY, isParticle = false, isOrb = false }) => {
   const itemRef = useRef(null);
   
-  // These springs handle the "repulsion" effect
   const x = useMotionValue(0);
   const y = useMotionValue(0);
   const springX = useSpring(x, { stiffness: 25, damping: 12, mass: 1.5 });
   const springY = useSpring(y, { stiffness: 25, damping: 12, mass: 1.5 });
 
-  // Parallax handles the entire scene shifting when the mouse moves globally
   const parallaxX = useTransform(globalMouseX, [0, typeof window !== 'undefined' ? window.innerWidth : 1000], [-el.parallaxRatio, el.parallaxRatio]);
   const parallaxY = useTransform(globalMouseY, [0, typeof window !== 'undefined' ? window.innerHeight : 1000], [-el.parallaxRatio, el.parallaxRatio]);
 
@@ -49,11 +47,13 @@ const InteractiveItem = ({ el, globalMouseX, globalMouseY, isParticle = false, i
         const distanceY = e.clientY - centerY;
         const distance = Math.sqrt(distanceX ** 2 + distanceY ** 2);
         
-        const radius = 250; 
+        // 🔑 SMART SCALE: Shrink interaction physics bubble on mobile screen states
+        const isMobile = window.innerWidth < 768;
+        const radius = isMobile ? 110 : 250; 
 
         if (distance < radius) {
           const force = Math.pow((radius - distance) / radius, 1.5);
-          const maxPush = 120; 
+          const maxPush = isMobile ? 40 : 120; 
           
           x.set(-(distanceX / distance) * force * maxPush);
           y.set(-(distanceY / distance) * force * maxPush);
@@ -75,7 +75,6 @@ const InteractiveItem = ({ el, globalMouseX, globalMouseY, isParticle = false, i
     return (
       <motion.div
         className={`absolute rounded-full pointer-events-none ${el.color.split(' ')[0].replace('text-', 'bg-')} blur-3xl opacity-20`}
-        // Notice we now use 'top' instead of animating 'y' from offscreen
         style={{ width: `${el.size}px`, height: `${el.size}px`, left: `${el.left}%`, top: `${el.top}%`, x: parallaxX, y: parallaxY }}
         animate={{ 
           x: [0, el.driftX, 0], 
@@ -90,7 +89,6 @@ const InteractiveItem = ({ el, globalMouseX, globalMouseY, isParticle = false, i
     return (
       <motion.div
         className="absolute pointer-events-none"
-        // Distributed perfectly via 'top' and 'left'
         style={{ width: `${el.size}px`, height: `${el.size}px`, left: `${el.left}%`, top: `${el.top}%`, x: parallaxX, y: parallaxY }}
       >
         <motion.div style={{ x: springX, y: springY, width: '100%', height: '100%', willChange: 'transform' }} ref={itemRef}>
@@ -112,7 +110,6 @@ const InteractiveItem = ({ el, globalMouseX, globalMouseY, isParticle = false, i
   return (
     <motion.div
       className="absolute pointer-events-none"
-      // Distributed perfectly via 'top' and 'left'
       style={{ width: `${el.size}px`, height: `${el.size}px`, left: `${el.left}%`, top: `${el.top}%`, x: parallaxX, y: parallaxY }}
     >
       <motion.div style={{ x: springX, y: springY, width: '100%', height: '100%', willChange: 'transform' }} ref={itemRef}>
@@ -122,8 +119,8 @@ const InteractiveItem = ({ el, globalMouseX, globalMouseY, isParticle = false, i
           animate={{ 
             rotate: 360, 
             scale: [1, 1.05, 1],
-            x: [0, el.driftX, 0], // Ambient breathing left/right
-            y: [0, el.driftY, 0]  // Ambient breathing up/down
+            x: [0, el.driftX, 0], 
+            y: [0, el.driftY, 0]  
           }}
           transition={{ 
             rotate: { duration: el.duration * 0.5, ease: "linear", repeat: Infinity },
@@ -140,10 +137,21 @@ const InteractiveItem = ({ el, globalMouseX, globalMouseY, isParticle = false, i
 };
 
 const FloatingBackground = () => {
+  const [isMobile, setIsMobile] = useState(false);
   const mouseX = useMotionValue(typeof window !== "undefined" ? window.innerWidth / 2 : 0);
   const mouseY = useMotionValue(typeof window !== "undefined" ? window.innerHeight / 2 : 0);
   const smoothMouseX = useSpring(mouseX, { stiffness: 40, damping: 20 });
   const smoothMouseY = useSpring(mouseY, { stiffness: 40, damping: 20 });
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    handleResize();
+    window.addEventListener("resize", handleResize, { passive: true });
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   useEffect(() => {
     const updateMousePos = (e) => {
@@ -154,30 +162,33 @@ const FloatingBackground = () => {
     return () => window.removeEventListener("mousemove", updateMousePos);
   }, [mouseX, mouseY]);
 
-  // Generator now assigns a random TOP position so they spawn everywhere, 
-  // and assigns drift offsets so they float gently around their spawn point.
   const createElements = (length, sizeMin, sizeMax, durMin, durMax, opac, blur, pRatio) => {
-    return Array.from({ length }).map((_, i) => ({
+    // 🔑 SMART FIX: Scale element counts, baseline sizes, and path drift range dynamically on mobile viewports
+    const targetLength = isMobile ? Math.ceil(length * 0.3) : length;
+    const sizeScale = isMobile ? 0.55 : 1.0;
+    const driftScale = isMobile ? 0.4 : 1.0;
+
+    return Array.from({ length: targetLength }).map((_, i) => ({
       id: `${blur}-${i}`,
       icon: ICONS[i % ICONS.length],
       color: COLORS[Math.floor(Math.random() * COLORS.length)],
-      size: Math.random() * (sizeMax - sizeMin) + sizeMin,
+      size: (Math.random() * (sizeMax - sizeMin) + sizeMin) * sizeScale,
       left: Math.random() * 100,
-      top: Math.random() * 100, // <--- Spawns all over the screen vertically!
-      driftX: (Math.random() * 40) - 20, // Moves gently left or right
-      driftY: (Math.random() * 60) - 30, // Moves gently up or down
+      top: Math.random() * 100, 
+      driftX: ((Math.random() * 40) - 20) * driftScale, 
+      driftY: ((Math.random() * 60) - 30) * driftScale, 
       duration: Math.random() * (durMax - durMin) + durMin,
-      opacity: opac,
+      opacity: isMobile ? opac * 0.6 : opac,
       blur: blur,
-      parallaxRatio: pRatio
+      parallaxRatio: isMobile ? pRatio * 0.35 : pRatio
     }));
   };
 
-  const orbs = useMemo(() => createElements(6, 200, 400, 40, 60, 0.1, 'blur(60px)', 30), []);
-  const backLayer = useMemo(() => createElements(30, 20, 35, 15, 25, 0.25, 'blur(4px)', 15), []);
-  const midLayer = useMemo(() => createElements(50, 35, 60, 10, 20, 0.45, 'blur(1.5px)', 40), []);
-  const frontLayer = useMemo(() => createElements(25, 60, 90, 12, 22, 0.75, 'none', 90), []);
-  const particles = useMemo(() => createElements(120, 1, 3, 5, 10, 0.8, 'none', 60), []);
+  const orbs = useMemo(() => createElements(6, 200, 400, 40, 60, 0.1, 'blur(60px)', 30), [isMobile]);
+  const backLayer = useMemo(() => createElements(30, 20, 35, 15, 25, 0.25, 'blur(4px)', 15), [isMobile]);
+  const midLayer = useMemo(() => createElements(50, 35, 60, 10, 20, 0.45, 'blur(1.5px)', 40), [isMobile]);
+  const frontLayer = useMemo(() => createElements(25, 60, 90, 12, 22, 0.75, 'none', 90), [isMobile]);
+  const particles = useMemo(() => createElements(120, 1, 3, 5, 10, 0.8, 'none', 60), [isMobile]);
 
   return (
     <div className="fixed inset-0 overflow-hidden pointer-events-none z-0 bg-slate-50/5 dark:bg-[#020617] transition-colors duration-700">
