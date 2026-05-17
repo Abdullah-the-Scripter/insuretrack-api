@@ -1,8 +1,15 @@
 const AppDataSource = require("../config/db");
 const asyncHandler = require("../middleware/asyncHandler");
 
+// 🔑 CRITICAL FIX: Import the explicit Claim EntitySchema object
+const Claim = require("../entities/Claim");
+
 exports.createClaim = asyncHandler(async (req, res) => {
-  const repo = AppDataSource.getRepository("Claim");
+  // 🔑 CRITICAL FIX: Guard database initialization for serverless contexts
+  if (!AppDataSource.isInitialized) {
+    await AppDataSource.initialize();
+  }
+  const repo = AppDataSource.getRepository(Claim);
   
   let docMeta = null;
   if (req.file) {
@@ -29,7 +36,10 @@ exports.createClaim = asyncHandler(async (req, res) => {
 });
 
 exports.getClaims = asyncHandler(async (req, res) => {
-  const repo = AppDataSource.getRepository("Claim");
+  if (!AppDataSource.isInitialized) {
+    await AppDataSource.initialize();
+  }
+  const repo = AppDataSource.getRepository(Claim);
   const { page = 1, limit = 10, status, type, search, sort = "DESC", assignment } = req.query;
 
   const qb = repo
@@ -65,7 +75,10 @@ exports.getClaims = asyncHandler(async (req, res) => {
 });
 
 exports.getClaimById = asyncHandler(async (req, res) => {
-  const repo = AppDataSource.getRepository("Claim");
+  if (!AppDataSource.isInitialized) {
+    await AppDataSource.initialize();
+  }
+  const repo = AppDataSource.getRepository(Claim);
   const claim = await repo.findOne({
     where: { id: req.params.id },
     relations: ["user", "assignedOfficer"]
@@ -85,7 +98,10 @@ exports.getClaimById = asyncHandler(async (req, res) => {
 });
 
 exports.updateStatus = asyncHandler(async (req, res) => {
-  const repo = AppDataSource.getRepository("Claim");
+  if (!AppDataSource.isInitialized) {
+    await AppDataSource.initialize();
+  }
+  const repo = AppDataSource.getRepository(Claim);
   const claim = await repo.findOne({
     where: { id: req.params.id },
     relations: ["assignedOfficer"]
@@ -102,7 +118,10 @@ exports.updateStatus = asyncHandler(async (req, res) => {
 });
 
 exports.assignOfficer = asyncHandler(async (req, res) => {
-  const repo = AppDataSource.getRepository("Claim");
+  if (!AppDataSource.isInitialized) {
+    await AppDataSource.initialize();
+  }
+  const repo = AppDataSource.getRepository(Claim);
   await repo.update(req.params.id, {
     assignedOfficer: { id: req.body.officerId }
   });
