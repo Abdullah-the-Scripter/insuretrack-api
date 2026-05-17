@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import axiosInstance from '../../api/axiosInstance'; // Adjust path if needed
+import axiosInstance from '../../api/axiosInstance'; 
 
 const AdminDashboard = () => {
-  // 1. Swap hardcoded mock data for dynamic React state
+  // 1. Dynamic state for real-time metrics
   const [stats, setStats] = useState({
     totalClaims: 0,
     underReview: 0,
@@ -14,15 +14,29 @@ const AdminDashboard = () => {
   useEffect(() => {
     const fetchDashboardMetrics = async () => {
       try {
-        // Fetch the full list of claims from your existing endpoint
         const response = await axiosInstance.get('/claims');
-        const claims = response.data;
+        
+        // 🚨 DEBUG: This will print the exact backend data to your browser console
+        console.log("Backend Claims Data:", response.data);
 
-        // Count them up dynamically based on their live status
-        const total = claims.length;
-        const underReviewCount = claims.filter(c => c.status === 'under review').length;
-        const approvedCount = claims.filter(c => c.status === 'approved').length;
-        const rejectedCount = claims.filter(c => c.status === 'rejected').length;
+        // 🛡️ BULLETPROOF DATA EXTRACTION
+        // Safely find the array no matter how the backend wrapped it
+        let claimsArray = [];
+        if (Array.isArray(response.data)) {
+          claimsArray = response.data; // Standard flat array
+        } else if (response.data && Array.isArray(response.data.data)) {
+          claimsArray = response.data.data; // Wrapped in { data: [...] }
+        } else if (response.data && Array.isArray(response.data.claims)) {
+          claimsArray = response.data.claims; // Wrapped in { claims: [...] }
+        } else {
+          console.warn("Could not find an array in the backend response.");
+        }
+
+        // 🧮 CASE-INSENSITIVE COUNTING
+        const total = claimsArray.length;
+        const underReviewCount = claimsArray.filter(c => c.status?.toLowerCase() === 'under review').length;
+        const approvedCount = claimsArray.filter(c => c.status?.toLowerCase() === 'approved').length;
+        const rejectedCount = claimsArray.filter(c => c.status?.toLowerCase() === 'rejected').length;
 
         // Update the screen with the real numbers
         setStats({
@@ -31,6 +45,7 @@ const AdminDashboard = () => {
           approved: approvedCount,
           rejected: rejectedCount
         });
+
       } catch (error) {
         console.error("Failed to load live metrics:", error);
       }
@@ -104,7 +119,7 @@ const AdminDashboard = () => {
             </span>
           </div>
           <p className="mt-2 text-xs font-bold text-emerald-600 dark:text-emerald-400">
-            0% success rate
+            Processed successfully
           </p>
         </div>
 
