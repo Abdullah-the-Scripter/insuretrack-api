@@ -43,7 +43,7 @@ const AdminDashboard = () => {
                 totalAssigned: 0, 
                 approved: 0, 
                 pending: 0,
-                rejected: 0 // Added rejection tracking
+                rejected: 0
               };
             }
             
@@ -168,9 +168,9 @@ const AdminDashboard = () => {
                   {/* RIGHT: Visual Distribution Bar */}
                   <div className="flex-1 w-full max-w-xl">
                     <div className="flex justify-between text-[10px] font-black uppercase tracking-widest mb-2">
-                      <span className="text-emerald-600 dark:text-emerald-400">{approvedRate}% Approved ({officer.approved})</span>
-                      <span className="text-slate-500 dark:text-slate-400">{pendingRate}% Pending ({officer.pending})</span>
-                      <span className="text-rose-600 dark:text-rose-400">{rejectedRate}% Declined ({officer.rejected})</span>
+                      <span className="text-emerald-600 dark:text-emerald-400">{approvedRate}% Approved</span>
+                      <span className="text-slate-500 dark:text-slate-400">{pendingRate}% Pending</span>
+                      <span className="text-rose-600 dark:text-rose-400">{rejectedRate}% Declined</span>
                     </div>
                     
                     {/* The Multi-Color Progress Bar */}
