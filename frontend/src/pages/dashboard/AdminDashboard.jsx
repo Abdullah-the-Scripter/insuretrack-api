@@ -14,7 +14,9 @@ const AdminDashboard = () => {
   useEffect(() => {
     const fetchDashboardMetrics = async () => {
       try {
-        const response = await axiosInstance.get('/claims');
+        // 🔑 THE CRITICAL FIX: Explicitly request a large limit so the backend 
+        // bypasses its default fallback limit of 2 for this component!
+        const response = await axiosInstance.get('/claims?limit=1000');
         const claimsArray = response.data.data || [];
 
         // --- TOP METRICS CALCULATION ---
@@ -79,6 +81,7 @@ const AdminDashboard = () => {
 
       {/* 📊 METRIC CARDS GRID */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        
         <div className="relative overflow-hidden rounded-2xl border border-white/40 dark:border-slate-800 bg-white/15 dark:bg-slate-900/20 backdrop-blur-3xl p-6 shadow-xl shadow-slate-200/30 dark:shadow-none transition-all duration-300 hover:scale-[1.02]">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Total Claims</span>
@@ -124,6 +127,7 @@ const AdminDashboard = () => {
           </div>
           <p className="mt-2 text-xs font-bold text-rose-600 dark:text-rose-400">Declined claims</p>
         </div>
+
       </div>
 
       {/* 📉 DYNAMIC PERFORMANCE REPORT SECTION */}
@@ -146,7 +150,6 @@ const AdminDashboard = () => {
         ) : (
           <div className="space-y-4">
             {officerStats.map((officer, index) => {
-              // 🧮 CALCULATE PERCENTAGES DYNAMICALLY
               const approvedRate = officer.totalAssigned > 0 ? Math.round((officer.approved / officer.totalAssigned) * 100) : 0;
               const rejectedRate = officer.totalAssigned > 0 ? Math.round((officer.rejected / officer.totalAssigned) * 100) : 0;
               const pendingRate = officer.totalAssigned > 0 ? Math.round((officer.pending / officer.totalAssigned) * 100) : 0;
@@ -173,7 +176,6 @@ const AdminDashboard = () => {
                       <span className="text-rose-600 dark:text-rose-400">{rejectedRate}% Declined</span>
                     </div>
                     
-                    {/* The Multi-Color Progress Bar */}
                     <div className="h-2.5 w-full bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden flex shadow-inner">
                       <div style={{width: `${approvedRate}%`}} className="bg-emerald-500 hover:bg-emerald-400 transition-all duration-500"></div>
                       <div style={{width: `${pendingRate}%`}} className="bg-amber-500 hover:bg-amber-400 transition-all duration-500"></div>
