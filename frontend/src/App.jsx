@@ -2,7 +2,7 @@ import React from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 
-import { ThemeProvider } from "./context/ThemeContext"; // ADDED THIS
+import { ThemeProvider } from "./context/ThemeContext"; 
 import Login from "./pages/auth/Login";
 import Register from "./pages/auth/Register";
 import DashboardLayout from "./components/layout/DashboardLayout";
@@ -17,18 +17,61 @@ import FloatingBackground from "./components/ui/FloatingBackground";
 function App() {
   return (
     <ThemeProvider>
+      {/* 🚀 UPGRADED HIGH-PROMINENCE LAYER TOASTER */}
       <Toaster 
-        position="top-center" 
+        position="top-right" // 🔑 Shifts the card completely clear of your centered navbar
+        containerStyle={{
+          top: 40,
+          right: 40,
+        }}
         toastOptions={{
-          duration: 3000,
+          duration: 4000,
           style: {
-            background: 'var(--tw-colors-slate-900)',
-            color: '#fff',
-            borderRadius: '12px',
+            // 🧱 Stacking Context: Forces the toast to sit on top of the blurred sticky header
+            zIndex: 99999,
+            
+            // 🎨 High-Contrast Charcoal Slate Backing (Crisp visibility in both Light & Dark modes)
+            background: '#0f172a', 
+            color: '#f8fafc',
+            
+            // 💎 Glass Definition Details
+            backdropFilter: 'blur(16px)',
+            WebkitBackdropFilter: 'blur(16px)',
+            border: '1px solid rgba(255, 255, 255, 0.15)',
+            
+            // 📐 Shape & Proportions
+            borderRadius: '16px',
+            padding: '14px 24px',
             fontSize: '14px',
-            fontWeight: '600',
-            boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.2)',
+            fontWeight: '700',
+            letterSpacing: '-0.01em',
+            
+            // 👥 Deep Ambient Shadow Projection
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2)',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '10px',
           },
+          
+          // ✨ Eye-Catching Left Indicator Accent Stripes
+          success: {
+            iconTheme: {
+              primary: '#22d3ee', // Flagship Electric Cyan Branding
+              secondary: '#0f172a',
+            },
+            style: {
+              borderLeft: '4px solid #22d3ee',
+            }
+          },
+          error: {
+            iconTheme: {
+              primary: '#f43f5e', // Warning Vibrant Rose
+              secondary: '#0f172a',
+            },
+            style: {
+              borderLeft: '4px solid #f43f5e',
+            }
+          }
         }} 
       />
       
