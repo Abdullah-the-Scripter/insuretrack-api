@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { useReactTable, getCoreRowModel, flexRender } from '@tanstack/react-table';
 import { motion, AnimatePresence } from 'framer-motion';
+import toast from 'react-hot-toast';
 import axiosInstance from '../../api/axiosInstance';
 import Card from '../../components/ui/Card';
 import Loader from '../../components/ui/Loader';
@@ -34,7 +35,6 @@ const ClaimsList = () => {
     setLoading(true);
     try {
       const res = await axiosInstance.get('/claims', {
-        // 🔑 UPDATED: Set limit to 2 instead of 10 to enable pagination with 3 database items
         params: { search, status: statusFilter, page: pageIndex + 1, limit: 2, assignment: assignmentFilter },
       });
       setData(res.data.data ?? res.data);
@@ -48,6 +48,27 @@ const ClaimsList = () => {
   }, [search, statusFilter, pageIndex, assignmentFilter]);
 
   useEffect(() => { fetchClaims(); }, [fetchClaims]);
+
+  // 🔴 FRONTEND DISPATCH DELETION HANDLER CONTROL ROUTINE
+  const handleDelete = async (claimId, e) => {
+    e.stopPropagation(); // Stops the grid row item layout click frame from evaluating
+    
+    if (window.confirm("Are you sure you want to permanently delete this claim from the database queue?")) {
+      try {
+        await axiosInstance.delete(`/claims/${claimId}`);
+        toast.success("Claim record deleted successfully!");
+        
+        // Adjust pagination page indexes safely if user drops the last item on an extended page
+        if (data.length === 1 && pageIndex > 0) {
+          setPageIndex((prev) => prev - 1);
+        } else {
+          fetchClaims(); // Trigger state re-fetch mapping parameters evaluation
+        }
+      } catch (err) {
+        toast.error(err.response?.data?.msg || "Failed to execute delete routine.");
+      }
+    }
+  };
 
   const columns = useMemo(() => [
     {
@@ -81,18 +102,33 @@ const ClaimsList = () => {
     {
       id: 'actions',
       cell: (info) => (
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            navigate(`/claims/${info.row.original.id}`);
-          }}
-          className="text-xs font-bold text-slate-700 dark:text-white bg-slate-200/50 dark:bg-white/10 hover:bg-slate-300/50 dark:hover:bg-white/20 border border-slate-300/50 dark:border-white/10 px-4 py-2 rounded-lg transition-all backdrop-blur-md"
-        >
-          View Details
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              navigate(`/claims/${info.row.original.id}`);
+            }}
+            className="text-xs font-bold text-slate-700 dark:text-white bg-slate-200/50 dark:bg-white/10 hover:bg-slate-300/50 dark:hover:bg-white/20 border border-slate-300/50 dark:border-white/10 px-4 py-2 rounded-lg transition-all backdrop-blur-md cursor-pointer"
+          >
+            View Details
+          </button>
+
+          {/* 🛡️ INTERACTIVE CONDITIONAL TRASH INTERFACE ASSET DESIGNATED FOR ADMIN ACCOUNTS ONLY */}
+          {user?.role === 'admin' && (
+            <button
+              onClick={(e) => handleDelete(info.row.original.id, e)}
+              className="p-2 text-rose-600 dark:text-rose-400 hover:text-white bg-rose-500/10 hover:bg-rose-600 border border-rose-500/20 rounded-lg transition-all backdrop-blur-md cursor-pointer flex items-center justify-center"
+              title="Purge Claim Record"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-4v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+            </button>
+          )}
+        </div>
       ),
     },
-  ], [navigate]);
+  ], [navigate, user, data, pageIndex]); // Added hook track parameters to preserve grid render safety instances
 
   const table = useReactTable({ data, columns, pageCount: totalPages, manualPagination: true, getCoreRowModel: getCoreRowModel() });
 

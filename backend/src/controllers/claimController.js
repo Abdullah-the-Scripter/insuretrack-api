@@ -127,3 +127,25 @@ exports.assignOfficer = asyncHandler(async (req, res) => {
   });
   return res.json({ msg: "Officer assigned successfully" });
 });
+
+// 🚀 NEW FUNCTION: SECURE ADMIN DELETION HANDLER
+exports.deleteClaim = asyncHandler(async (req, res) => {
+  if (!AppDataSource.isInitialized) {
+    await AppDataSource.initialize();
+  }
+  const repo = AppDataSource.getRepository(Claim);
+  const claimId = req.params.id;
+
+  const claim = await repo.findOne({ where: { id: claimId } });
+  if (!claim) {
+    return res.status(404).json({ msg: "Claim not found" });
+  }
+
+  // 🛡️ Server-Side Gatekeeper Authentication check
+  if (req.user.role !== "admin") {
+    return res.status(403).json({ msg: "Access denied. Only system administrators can drop records." });
+  }
+
+  await repo.remove(claim);
+  return res.json({ msg: "Claim record purged successfully from the system queue" });
+});
