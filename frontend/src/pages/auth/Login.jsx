@@ -2,11 +2,10 @@ import React, { useState } from "react";
 import { useDispatch } from "react-redux";
 import { useNavigate, Link } from "react-router-dom";
 import toast from "react-hot-toast";
-import { motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { setCredentials } from "../../features/authSlice";
 import axiosInstance from "../../api/axiosInstance";
 import Input from "../../components/ui/Input";
-import Button from "../../components/ui/Button";
 import Card from "../../components/ui/Card";
 
 const Login = () => {
@@ -39,15 +38,13 @@ const Login = () => {
   };
 
   return (
-    // 🧱 added 'will-change-transform' to bypass repainting background elements when processing routes
     <div className="relative flex items-center justify-center min-h-screen bg-transparent overflow-hidden px-4 will-change-transform">
       <div className="w-full max-w-md">
         
-        {/* 🚀 UPGRADED GLASS CONTAINER CARD WITH GPU TRANSFORMS */}
         <Card delay={0}>
           <div 
             className="text-center mb-10"
-            style={{ transform: 'translateZ(0)', willChange: 'transform, opacity' }} // 🔑 GPU Hardware Acceleration
+            style={{ transform: 'translateZ(0)', willChange: 'transform, opacity' }}
           >
             <div className="mx-auto w-16 h-16 bg-gradient-to-tr from-blue-600 to-indigo-600 rounded-2xl flex items-center justify-center text-white mb-6 shadow-[0_8px_20px_rgba(59,130,246,0.3)] dark:shadow-[0_8px_20px_rgba(34,211,238,0.2)]">
               <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -65,7 +62,6 @@ const Login = () => {
               name="email"
               placeholder="name@company.com"
               value={email}
-              setEmail={setEmail}
               onChange={(e) => setEmail(e.target.value)}
               required
             />
@@ -79,17 +75,43 @@ const Login = () => {
               required
             />
             
-            {/* ⚡ LOAD LOCK REGION: Forces fixed container height so spinner text mounting doesn't layout-shift */}
+            {/* ⚡ LOAD LOCK REGION */}
             <div className="pt-2 h-[60px] flex items-center justify-center">
-              <Button 
+              <button 
                 type="submit" 
-                className={`w-full py-3.5 text-base font-bold transition-all duration-200 ${
-                  isLoading ? 'opacity-70 scale-[0.99]' : 'hover:scale-[1.01] active:scale-[0.99]'
+                disabled={isLoading}
+                className={`w-full h-full rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-500 hover:from-blue-700 hover:to-indigo-600 text-white font-extrabold tracking-wide text-sm shadow-lg shadow-blue-500/20 transition-all duration-300 flex items-center justify-center relative overflow-hidden ${
+                  isLoading ? 'opacity-75 cursor-not-allowed scale-[0.99]' : 'hover:scale-[1.01] active:scale-[0.99] cursor-pointer'
                 }`}
-                isLoading={isLoading}
               >
-                Sign In to Portal
-              </Button>
+                {/* 🎭 SMOOTH FRAMER MOTION LOADING STATE LAYER */}
+                <AnimatePresence mode="wait">
+                  {isLoading ? (
+                    <motion.div 
+                      key="loader"
+                      initial={{ opacity: 0, y: 15 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -15 }}
+                      transition={{ duration: 0.2 }}
+                      className="flex items-center gap-3"
+                    >
+                      {/* Beautiful Neon CSS Spinner */}
+                      <span className="w-5 h-5 border-3 border-white/30 border-t-white rounded-full animate-spin" />
+                      <span className="tracking-wider uppercase text-xs font-black">Authenticating...</span>
+                    </motion.div>
+                  ) : (
+                    <motion.span
+                      key="text"
+                      initial={{ opacity: 0, y: -15 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 15 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      Sign In to Portal
+                    </motion.span>
+                  )}
+                </AnimatePresence>
+              </button>
             </div>
           </form>
 
