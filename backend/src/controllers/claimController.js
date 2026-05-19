@@ -1,10 +1,12 @@
 const AppDataSource = require("../config/db");
 const asyncHandler = require("../middleware/asyncHandler");
 
-// 🔑 Import the explicit Claim EntitySchema object
+// 🔑 CRITICAL FIXES: Import explicit EntitySchema objects directly
 const Claim = require("../entities/Claim");
+const User = require("../entities/User"); // 👈 Ensure this matches your exact entity file path!
 
 exports.createClaim = asyncHandler(async (req, res) => {
+  // Guard database initialization for serverless contexts
   if (!AppDataSource.isInitialized) {
     await AppDataSource.initialize();
   }
@@ -147,18 +149,18 @@ exports.deleteClaim = asyncHandler(async (req, res) => {
   return res.json({ msg: "Claim record purged successfully from the system queue" });
 });
 
-// 🚀 NEW FUNCTION: FETCH ALL REGISTERED USERS WHOSE ROLE IS OFFICER
+// 🚀 FIXED FUNCTION: EXPLICITLY BOUND TO USER ENTITY SCHEMA TO INGEST SUPABASE DATA FLUIDLY
 exports.getOfficerDirectory = asyncHandler(async (req, res) => {
   if (!AppDataSource.isInitialized) {
     await AppDataSource.initialize();
   }
   
   if (req.user.role !== "admin") {
-    return res.status(403).json({ msg: "Access denied. Admin rights verified required." });
+    return res.status(403).json({ msg: "Access denied. Admin rights verification failed." });
   }
 
-  // Uses TypeORM to fetch fields safely from your User model/table mapping
-  const userRepo = AppDataSource.getRepository("User"); 
+  // Passing explicit configuration class variable instead of string reference
+  const userRepo = AppDataSource.getRepository(User); 
   const officers = await userRepo.find({
     where: { role: "officer" },
     select: ["id", "name", "email", "createdAt"]

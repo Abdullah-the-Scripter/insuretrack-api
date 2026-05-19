@@ -10,7 +10,6 @@ const AdminDashboard = () => {
   });
 
   const [officerStats, setOfficerStats] = useState([]);
-  // 🔑 NEW STATE: Active User Accounts list tracker
   const [officerDirectory, setOfficerDirectory] = useState([]);
 
   useEffect(() => {
@@ -58,7 +57,7 @@ const AdminDashboard = () => {
 
         setOfficerStats(Object.values(officerMap));
 
-        // 🚀 NEW API CALL: Fetch pure system user emails from backend endpoint
+        // Pull verified profiles directly from our new server route
         const directoryResponse = await axiosInstance.get('/claims/admin/officers');
         setOfficerDirectory(directoryResponse.data || []);
 
@@ -73,7 +72,7 @@ const AdminDashboard = () => {
   return (
     <div className="space-y-6 p-6 max-w-7xl mx-auto relative z-10">
       
-      {/* 🔑 MAIN HEADER */}
+      {/* MAIN HEADER */}
       <div className="mb-8">
         <h1 className="text-3xl font-extrabold tracking-tight text-slate-800 dark:text-white transition-colors duration-300">
           System Overview
@@ -83,7 +82,7 @@ const AdminDashboard = () => {
         </p>
       </div>
 
-      {/* 📊 METRIC CARDS GRID */}
+      {/* METRIC CARDS GRID */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         
         <div className="relative overflow-hidden rounded-2xl border border-white/40 dark:border-slate-800 bg-white/15 dark:bg-slate-900/20 backdrop-blur-3xl p-6 shadow-xl shadow-slate-200/30 dark:shadow-none transition-all duration-300 hover:scale-[1.02]">
@@ -134,10 +133,10 @@ const AdminDashboard = () => {
 
       </div>
 
-      {/* TWO-COLUMN GRID ENCLOSING RESOLUTIONS RE-LAYOUT GRAPH AND DIRECTORY TREE LIST */}
+      {/* TWO-COLUMN LOWER SPLIT INTERFACE PANEL CONTAINER */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
         
-        {/* 📉 DYNAMIC PERFORMANCE REPORT SECTION (Takes up 2 columns) */}
+        {/* LEFT COMPONENT PANEL: PERFORMANCE DATA GRID */}
         <div className="lg:col-span-2 relative rounded-2xl border border-white/40 dark:border-slate-800 bg-white/15 dark:bg-slate-900/20 backdrop-blur-3xl p-6 shadow-xl shadow-slate-200/30 dark:shadow-none transition-all duration-300">
           <div className="mb-6">
             <h2 className="text-lg font-bold tracking-tight text-slate-800 dark:text-white">
@@ -163,8 +162,6 @@ const AdminDashboard = () => {
 
                 return (
                   <div key={index} className="flex flex-col md:flex-row md:items-center justify-between p-5 rounded-xl bg-white/5 dark:bg-black/20 border border-white/20 dark:border-white/5 backdrop-blur-md shadow-inner transition-colors duration-200 gap-6">
-                    
-                    {/* LEFT: Identity */}
                     <div className="flex items-center gap-4 min-w-[200px]">
                       <div className="w-12 h-12 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center text-white font-black shadow-lg shadow-blue-500/30 text-lg">
                         {officer.name.charAt(0).toUpperCase()}
@@ -175,21 +172,18 @@ const AdminDashboard = () => {
                       </div>
                     </div>
                     
-                    {/* RIGHT: Visual Distribution Bar */}
                     <div className="flex-1 w-full max-w-xl">
                       <div className="flex justify-between text-[10px] font-black uppercase tracking-widest mb-2">
                         <span className="text-emerald-600 dark:text-emerald-400">{approvedRate}% Approved</span>
                         <span className="text-slate-500 dark:text-slate-400">{pendingRate}% Pending</span>
                         <span className="text-rose-600 dark:text-rose-400">{rejectedRate}% Declined</span>
                       </div>
-                      
                       <div className="h-2.5 w-full bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden flex shadow-inner">
                         <div style={{width: `${approvedRate}%`}} className="bg-emerald-500 hover:bg-emerald-400 transition-all duration-500"></div>
                         <div style={{width: `${pendingRate}%`}} className="bg-amber-500 hover:bg-amber-400 transition-all duration-500"></div>
                         <div style={{width: `${rejectedRate}%`}} className="bg-rose-500 hover:bg-rose-400 transition-all duration-500"></div>
                       </div>
                     </div>
-                    
                   </div>
                 );
               })}
@@ -197,7 +191,7 @@ const AdminDashboard = () => {
           )}
         </div>
 
-        {/* 🚀 RIGHT COMPONENT COLUMN PANEL: THE ACTIVE OFFICER DIRECTORY (Takes up 1 column) */}
+        {/* 🚀 FIXED RIGHT COLUMN PANEL: SECURELY MAPS REGISTERED IDENTITIES DATA FIELDS */}
         <div className="relative rounded-2xl border border-white/40 dark:border-slate-800 bg-white/15 dark:bg-slate-900/20 backdrop-blur-3xl p-6 shadow-xl shadow-slate-200/30 dark:shadow-none transition-all duration-300">
           <div className="mb-6">
             <h2 className="text-lg font-bold tracking-tight text-slate-800 dark:text-white">
@@ -209,17 +203,23 @@ const AdminDashboard = () => {
           </div>
 
           <div className="space-y-3 max-h-[385px] overflow-y-auto pr-1">
-            {officerDirectory.length === 0 ? (
-              <p className="text-sm font-medium text-slate-400 italic py-4 text-center">No officers currently registered.</p>
+            {!officerDirectory || officerDirectory.length === 0 ? (
+              <p className="text-sm font-medium text-slate-400 dark:text-slate-500 italic py-4 text-center">
+                No officers currently registered.
+              </p>
             ) : (
               officerDirectory.map((off) => (
                 <div key={off.id} className="flex items-center gap-3 p-3 bg-white/40 dark:bg-black/20 rounded-xl border border-slate-200/60 dark:border-white/5 transition-colors">
                   <div className="w-9 h-9 rounded-lg bg-slate-200 dark:bg-white/10 flex items-center justify-center font-bold text-slate-700 dark:text-slate-300 text-sm shadow-sm flex-shrink-0">
-                    {off.name.charAt(0).toUpperCase()}
+                    {off.name ? off.name.charAt(0).toUpperCase() : 'O'}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h4 className="text-sm font-bold text-slate-900 dark:text-white truncate tracking-tight">{off.name}</h4>
-                    <p className="text-xs font-medium text-slate-400 dark:text-slate-500 truncate">{off.email}</p>
+                    <h4 className="text-sm font-bold text-slate-900 dark:text-white truncate tracking-tight">
+                      {off.name || "Unnamed Officer"}
+                    </h4>
+                    <p className="text-xs font-medium text-slate-400 dark:text-slate-500 truncate">
+                      {off.email}
+                    </p>
                   </div>
                 </div>
               ))
