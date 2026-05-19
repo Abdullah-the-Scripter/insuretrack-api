@@ -3,7 +3,18 @@
   "less.validate": false,
   "scss.validate": false,
   "css.lint.unknownAtRules": "ignore",
+  
+  // 🔑 Fix 1: Properly map styles and associate JavaScript files for Tailwind scanning
   "files.associations": {
     "*.css": "tailwindcss"
+  },
+
+  // 🔑 Fix 2: Prevent the built-in editor from misinterpreting Tailwind syntax
+  "tailwindCSS.experimental.classRegex": [
+    ["inline-styles", "bg-white/\\d+"]
+  ],
+  "tailwindCSS.includeLanguages": {
+    "javascript": "javascriptreact",
+    "typescript": "typescriptreact"
   }
 }

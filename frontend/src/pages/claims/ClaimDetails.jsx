@@ -7,7 +7,7 @@ import Card from '../../components/ui/Card';
 import Loader from '../../components/ui/Loader';
 import Button from '../../components/ui/Button';
 
-// 🎨 UPDATED STATUS BADGES FOR ADAPTIVE TEXT IN LIGHT/DARK MODES
+//  UPDATED STATUS BADGES FOR ADAPTIVE TEXT IN LIGHT/DARK MODES
 const STATUS_BADGE = {
   approved: 'bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border-emerald-500/30',
   settled: 'bg-slate-500/10 dark:bg-slate-500/20 text-slate-700 dark:text-slate-300 border-slate-500/30',
@@ -84,7 +84,7 @@ const ClaimDetails = () => {
   return (
     <div className="max-w-6xl mx-auto space-y-6 px-4 relative z-10">
       
-      {/* 🧭 NAVIGATION BREADCRUMB */}
+      {/*  NAVIGATION BREADCRUMB */}
       <div className="flex items-center gap-3 text-sm font-bold">
         <button onClick={() => navigate('/claims')} className="text-slate-400 hover:text-slate-700 dark:hover:text-white transition-colors">
           ← Back to Queue

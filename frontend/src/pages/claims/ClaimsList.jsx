@@ -49,7 +49,7 @@ const ClaimsList = () => {
 
   useEffect(() => { fetchClaims(); }, [fetchClaims]);
 
-  // 🔴 FRONTEND DISPATCH DELETION HANDLER CONTROL ROUTINE
+  //  FRONTEND DISPATCH DELETION HANDLER CONTROL ROUTINE
   const handleDelete = async (claimId, e) => {
     e.stopPropagation(); // Stops the grid row item layout click frame from evaluating
     
@@ -113,7 +113,7 @@ const ClaimsList = () => {
             View Details
           </button>
 
-          {/* 🛡️ INTERACTIVE CONDITIONAL TRASH INTERFACE ASSET DESIGNATED FOR ADMIN ACCOUNTS ONLY */}
+          {/*  INTERACTIVE CONDITIONAL TRASH INTERFACE ASSET DESIGNATED FOR ADMIN ACCOUNTS ONLY */}
           {user?.role === 'admin' && (
             <button
               onClick={(e) => handleDelete(info.row.original.id, e)}
