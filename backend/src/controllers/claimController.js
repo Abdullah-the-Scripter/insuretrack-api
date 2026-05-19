@@ -1,11 +1,10 @@
 const AppDataSource = require("../config/db");
 const asyncHandler = require("../middleware/asyncHandler");
 
-// 🔑 CRITICAL FIX: Import the explicit Claim EntitySchema object
+// 🔑 Import the explicit Claim EntitySchema object
 const Claim = require("../entities/Claim");
 
 exports.createClaim = asyncHandler(async (req, res) => {
-  // 🔑 CRITICAL FIX: Guard database initialization for serverless contexts
   if (!AppDataSource.isInitialized) {
     await AppDataSource.initialize();
   }
@@ -128,7 +127,6 @@ exports.assignOfficer = asyncHandler(async (req, res) => {
   return res.json({ msg: "Officer assigned successfully" });
 });
 
-// 🚀 NEW FUNCTION: SECURE ADMIN DELETION HANDLER
 exports.deleteClaim = asyncHandler(async (req, res) => {
   if (!AppDataSource.isInitialized) {
     await AppDataSource.initialize();
@@ -141,11 +139,30 @@ exports.deleteClaim = asyncHandler(async (req, res) => {
     return res.status(404).json({ msg: "Claim not found" });
   }
 
-  // 🛡️ Server-Side Gatekeeper Authentication check
   if (req.user.role !== "admin") {
     return res.status(403).json({ msg: "Access denied. Only system administrators can drop records." });
   }
 
   await repo.remove(claim);
   return res.json({ msg: "Claim record purged successfully from the system queue" });
+});
+
+// 🚀 NEW FUNCTION: FETCH ALL REGISTERED USERS WHOSE ROLE IS OFFICER
+exports.getOfficerDirectory = asyncHandler(async (req, res) => {
+  if (!AppDataSource.isInitialized) {
+    await AppDataSource.initialize();
+  }
+  
+  if (req.user.role !== "admin") {
+    return res.status(403).json({ msg: "Access denied. Admin rights verified required." });
+  }
+
+  // Uses TypeORM to fetch fields safely from your User model/table mapping
+  const userRepo = AppDataSource.getRepository("User"); 
+  const officers = await userRepo.find({
+    where: { role: "officer" },
+    select: ["id", "name", "email", "createdAt"]
+  });
+
+  return res.json(officers);
 });

@@ -10,12 +10,12 @@ const AdminDashboard = () => {
   });
 
   const [officerStats, setOfficerStats] = useState([]);
+  // 🔑 NEW STATE: Active User Accounts list tracker
+  const [officerDirectory, setOfficerDirectory] = useState([]);
 
   useEffect(() => {
     const fetchDashboardMetrics = async () => {
       try {
-        // 🔑 THE CRITICAL FIX: Explicitly request a large limit so the backend 
-        // bypasses its default fallback limit of 2 for this component!
         const response = await axiosInstance.get('/claims?limit=1000');
         const claimsArray = response.data.data || [];
 
@@ -57,6 +57,10 @@ const AdminDashboard = () => {
         });
 
         setOfficerStats(Object.values(officerMap));
+
+        // 🚀 NEW API CALL: Fetch pure system user emails from backend endpoint
+        const directoryResponse = await axiosInstance.get('/claims/admin/officers');
+        setOfficerDirectory(directoryResponse.data || []);
 
       } catch (error) {
         console.error("Failed to load metrics:", error);
@@ -130,65 +134,101 @@ const AdminDashboard = () => {
 
       </div>
 
-      {/* 📉 DYNAMIC PERFORMANCE REPORT SECTION */}
-      <div className="relative rounded-2xl border border-white/40 dark:border-slate-800 bg-white/15 dark:bg-slate-900/20 backdrop-blur-3xl p-6 shadow-xl shadow-slate-200/30 dark:shadow-none transition-all duration-300 mt-6">
-        <div className="mb-6">
-          <h2 className="text-lg font-bold tracking-tight text-slate-800 dark:text-white">
-            Officer Performance Report
-          </h2>
-          <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 mt-0.5">
-            Claim resolution rates per assigned officer
-          </p>
-        </div>
-
-        {officerStats.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-12 px-4 rounded-xl border border-dashed border-slate-300/50 dark:border-slate-800 bg-white/10 dark:bg-slate-950/20">
-            <div className="text-sm font-bold text-slate-500 dark:text-slate-400 text-center">
-              No officers have been assigned claims yet.
-            </div>
+      {/* TWO-COLUMN GRID ENCLOSING RESOLUTIONS RE-LAYOUT GRAPH AND DIRECTORY TREE LIST */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
+        
+        {/* 📉 DYNAMIC PERFORMANCE REPORT SECTION (Takes up 2 columns) */}
+        <div className="lg:col-span-2 relative rounded-2xl border border-white/40 dark:border-slate-800 bg-white/15 dark:bg-slate-900/20 backdrop-blur-3xl p-6 shadow-xl shadow-slate-200/30 dark:shadow-none transition-all duration-300">
+          <div className="mb-6">
+            <h2 className="text-lg font-bold tracking-tight text-slate-800 dark:text-white">
+              Officer Performance Report
+            </h2>
+            <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 mt-0.5">
+              Claim resolution rates per assigned officer
+            </p>
           </div>
-        ) : (
-          <div className="space-y-4">
-            {officerStats.map((officer, index) => {
-              const approvedRate = officer.totalAssigned > 0 ? Math.round((officer.approved / officer.totalAssigned) * 100) : 0;
-              const rejectedRate = officer.totalAssigned > 0 ? Math.round((officer.rejected / officer.totalAssigned) * 100) : 0;
-              const pendingRate = officer.totalAssigned > 0 ? Math.round((officer.pending / officer.totalAssigned) * 100) : 0;
 
-              return (
-                <div key={index} className="flex flex-col md:flex-row md:items-center justify-between p-5 rounded-xl bg-white/5 dark:bg-black/20 border border-white/20 dark:border-white/5 backdrop-blur-md shadow-inner transition-colors duration-200 gap-6">
-                  
-                  {/* LEFT: Identity */}
-                  <div className="flex items-center gap-4 min-w-[200px]">
-                    <div className="w-12 h-12 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center text-white font-black shadow-lg shadow-blue-500/30 text-lg">
-                      {officer.name.charAt(0).toUpperCase()}
-                    </div>
-                    <div>
-                      <h4 className="text-base font-bold text-slate-900 dark:text-white tracking-tight">{officer.name}</h4>
-                      <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">Total Assigned: {officer.totalAssigned}</p>
-                    </div>
-                  </div>
-                  
-                  {/* RIGHT: Visual Distribution Bar */}
-                  <div className="flex-1 w-full max-w-xl">
-                    <div className="flex justify-between text-[10px] font-black uppercase tracking-widest mb-2">
-                      <span className="text-emerald-600 dark:text-emerald-400">{approvedRate}% Approved</span>
-                      <span className="text-slate-500 dark:text-slate-400">{pendingRate}% Pending</span>
-                      <span className="text-rose-600 dark:text-rose-400">{rejectedRate}% Declined</span>
+          {officerStats.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 px-4 rounded-xl border border-dashed border-slate-300/50 dark:border-slate-800 bg-white/10 dark:bg-slate-950/20">
+              <div className="text-sm font-bold text-slate-500 dark:text-slate-400 text-center">
+                No officers have been assigned claims yet.
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {officerStats.map((officer, index) => {
+                const approvedRate = officer.totalAssigned > 0 ? Math.round((officer.approved / officer.totalAssigned) * 100) : 0;
+                const rejectedRate = officer.totalAssigned > 0 ? Math.round((officer.rejected / officer.totalAssigned) * 100) : 0;
+                const pendingRate = officer.totalAssigned > 0 ? Math.round((officer.pending / officer.totalAssigned) * 100) : 0;
+
+                return (
+                  <div key={index} className="flex flex-col md:flex-row md:items-center justify-between p-5 rounded-xl bg-white/5 dark:bg-black/20 border border-white/20 dark:border-white/5 backdrop-blur-md shadow-inner transition-colors duration-200 gap-6">
+                    
+                    {/* LEFT: Identity */}
+                    <div className="flex items-center gap-4 min-w-[200px]">
+                      <div className="w-12 h-12 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center text-white font-black shadow-lg shadow-blue-500/30 text-lg">
+                        {officer.name.charAt(0).toUpperCase()}
+                      </div>
+                      <div>
+                        <h4 className="text-base font-bold text-slate-900 dark:text-white tracking-tight">{officer.name}</h4>
+                        <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">Total Assigned: {officer.totalAssigned}</p>
+                      </div>
                     </div>
                     
-                    <div className="h-2.5 w-full bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden flex shadow-inner">
-                      <div style={{width: `${approvedRate}%`}} className="bg-emerald-500 hover:bg-emerald-400 transition-all duration-500"></div>
-                      <div style={{width: `${pendingRate}%`}} className="bg-amber-500 hover:bg-amber-400 transition-all duration-500"></div>
-                      <div style={{width: `${rejectedRate}%`}} className="bg-rose-500 hover:bg-rose-400 transition-all duration-500"></div>
+                    {/* RIGHT: Visual Distribution Bar */}
+                    <div className="flex-1 w-full max-w-xl">
+                      <div className="flex justify-between text-[10px] font-black uppercase tracking-widest mb-2">
+                        <span className="text-emerald-600 dark:text-emerald-400">{approvedRate}% Approved</span>
+                        <span className="text-slate-500 dark:text-slate-400">{pendingRate}% Pending</span>
+                        <span className="text-rose-600 dark:text-rose-400">{rejectedRate}% Declined</span>
+                      </div>
+                      
+                      <div className="h-2.5 w-full bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden flex shadow-inner">
+                        <div style={{width: `${approvedRate}%`}} className="bg-emerald-500 hover:bg-emerald-400 transition-all duration-500"></div>
+                        <div style={{width: `${pendingRate}%`}} className="bg-amber-500 hover:bg-amber-400 transition-all duration-500"></div>
+                        <div style={{width: `${rejectedRate}%`}} className="bg-rose-500 hover:bg-rose-400 transition-all duration-500"></div>
+                      </div>
                     </div>
+                    
                   </div>
-                  
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* 🚀 RIGHT COMPONENT COLUMN PANEL: THE ACTIVE OFFICER DIRECTORY (Takes up 1 column) */}
+        <div className="relative rounded-2xl border border-white/40 dark:border-slate-800 bg-white/15 dark:bg-slate-900/20 backdrop-blur-3xl p-6 shadow-xl shadow-slate-200/30 dark:shadow-none transition-all duration-300">
+          <div className="mb-6">
+            <h2 className="text-lg font-bold tracking-tight text-slate-800 dark:text-white">
+              Active Officer Directory
+            </h2>
+            <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 mt-0.5">
+              Verified system access accounts and emails
+            </p>
           </div>
-        )}
+
+          <div className="space-y-3 max-h-[385px] overflow-y-auto pr-1">
+            {officerDirectory.length === 0 ? (
+              <p className="text-sm font-medium text-slate-400 italic py-4 text-center">No officers currently registered.</p>
+            ) : (
+              officerDirectory.map((off) => (
+                <div key={off.id} className="flex items-center gap-3 p-3 bg-white/40 dark:bg-black/20 rounded-xl border border-slate-200/60 dark:border-white/5 transition-colors">
+                  <div className="w-9 h-9 rounded-lg bg-slate-200 dark:bg-white/10 flex items-center justify-center font-bold text-slate-700 dark:text-slate-300 text-sm shadow-sm flex-shrink-0">
+                    {off.name.charAt(0).toUpperCase()}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h4 className="text-sm font-bold text-slate-900 dark:text-white truncate tracking-tight">{off.name}</h4>
+                    <p className="text-xs font-medium text-slate-400 dark:text-slate-500 truncate">{off.email}</p>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+
       </div>
+
     </div>
   );
 };

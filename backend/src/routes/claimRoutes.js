@@ -12,8 +12,10 @@ router.get("/:id", auth, ctrl.getClaimById);
 router.put("/:id", auth, role("officer"), ctrl.updateStatus);
 router.put("/:id/assign", auth, role("officer"), ctrl.assignOfficer);
 
-// 🚀 SECURE ADMIN MAPPING TUNNEL LINKED TO THE ROUTE ENGINE
+// SECURE ADMIN MAPPING TUNNEL LINKED TO THE ROUTE ENGINE
 router.delete("/:id", auth, role("admin"), ctrl.deleteClaim);
+// 🚀 NEW ADMIN ROUTE FOR COMPILING USERS ACCOUNT RECORD DATA
+router.get("/admin/officers", auth, role("admin"), ctrl.getOfficerDirectory);
 
 router.post("/comment", auth, commentCtrl.addComment);
 router.get("/comment/:claimId", auth, commentCtrl.getComments);
